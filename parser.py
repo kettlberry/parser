@@ -1,27 +1,30 @@
 import requests
 from bs4 import BeautifulSoup
-import re
 
-base_url = "https://vand.ru/country/india/"
-tour_base_url = "https://vand.ru"
-
+base_url = "https://www.otkrytie.ru/india"
+tour_base_url = "https://www.otkrytie.ru"
 
 def parse_tour_page(tour_url):
     try:
         response = requests.get(tour_url)
-        response.raise_for_status()  # Проверка на ошибки HTTP
+        response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
 
-        title_element = soup.find("h1", class_="page-title h1")
-        description_element = soup.find("div", class_="my-4 text-center")
+        country_element = soup.find("span", class_="tour-country")
+        route_element = soup.find("h4", class_="box-title", text="Маршрут тура").find_next_sibling("p")
 
-        title = title_element.text.strip() if title_element else ""
-        description = description_element.text.strip() if description_element else ""
 
-        return title, description
+        country = country_element.text.strip() if country_element else "Страна не найдена"
+        route = route_element.text.strip() if route_element else "Маршрут не найден"
+
+        return country, route
+
     except requests.exceptions.RequestException as e:
         print(f"Ошибка при запросе к {tour_url}: {e}")
-        return "", ""
+        return None, None
+    except AttributeError as e:
+        print(f"Ошибка парсинга страницы {tour_url}: {e}")
+        return None, None
 
 
 
@@ -31,29 +34,24 @@ def parse_page(page_url):
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
 
-        tour_links = soup.find_all("a", href=re.compile(r"/country/india/tour/"))
+        tour_links = soup.find_all("div", class_="box-title h-4") # Изменение здесь
+
 
         for tour_link in tour_links:
-            href = tour_link["href"]
-            tour_url = tour_base_url + href
-            title, description = parse_tour_page(tour_url)
-            print(f"{tour_url},{title},{description}")
+             href = tour_link.find('a', href=True)['href'] 
+             if href:  # Проверка на существование ссылки
+                tour_url = tour_base_url + href
+                country, route = parse_tour_page(tour_url)
+                if country and route: # проверка на None 
+                    print(f"URL: {tour_url}, Страна: {country}, Маршрут: {route}")
+
 
     except requests.exceptions.RequestException as e:
         print(f"Ошибка при запросе к {page_url}: {e}")
 
 
 def main():
-    page_num = 1
-    while True:
-      page_url = f"{base_url}?PAGEN_1={page_num}"
-      response = requests.get(page_url)
-
-      if response.status_code == 404: # Проверка на существование страницы
-          break
-
-      parse_page(page_url)
-      page_num += 1
+    parse_page(base_url)  # Парсим только указанную страницу
 
 
 
