@@ -7,15 +7,14 @@ def parse_magput(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
 
-        tour_elements = soup.find_all("div", class_="tcart js-tour-list-item")  # Находим все блоки с турами
+        tour_elements = soup.select(".tcart__item") # Используем CSS селектор
 
         for tour_element in tour_elements:
             link_element = tour_element.find("a", target="_blank", href=True)
             direction_element = tour_element.find("div", class_="tcart__direction")
 
-
             if link_element and direction_element:
-                link = link_element["href"]
+                link = "https://magput.ru" + link_element["href"] # Добавляем базовый URL
                 direction = direction_element.text.strip()
                 print(f"Ссылка: {link}, Направление: {direction}")
             else:
